@@ -2,13 +2,13 @@ local version = "2.51"
 local TESTVERSION = false
 local AUTOUPDATE = false
 local UPDATE_HOST = "raw.github.com"
-local UPDATE_PATH = "/Teeeez/BoL/VPrediction.lua".."?rand="..math.random(1,10000)
+local UPDATE_PATH = "/Teeeez/BoL/blob/master/VPrediction.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = LIB_PATH.."vPrediction.lua"
 local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
 
 function AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>VPrediction:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 if AUTOUPDATE then
-	local ServerData = GetWebResult(UPDATE_HOST, "/Teeeez/BoL/VPrediction.version")
+	local ServerData = GetWebResult(UPDATE_HOST, "/Teeeez/BoL/blob/master/VPrediction.version")
 	if ServerData then
 		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
 		if ServerVersion then
