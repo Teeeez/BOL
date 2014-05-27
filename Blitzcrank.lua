@@ -8,7 +8,7 @@ local SCRIPT_NAME = "Blitzcrank"
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
+local SOURCELIB_URL = "https://raw.github.com/Teeeez/BOL/edit/master/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 
 if FileExist(SOURCELIB_PATH) then
@@ -21,12 +21,12 @@ end
 if DOWNLOADING_SOURCELIB then print("Downloading required libraries, please wait...") return end
 
 if AUTOUPDATE then
-	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/Hellsing/BoL/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/Hellsing/BoL/master/version/"..SCRIPT_NAME..".version"):CheckUpdate()
+	 SourceUpdater(SCRIPT_NAME, version, "raw.github.com", "/Teeeez/BoL/master/"..SCRIPT_NAME..".lua", SCRIPT_PATH .. GetCurrentEnv().FILE_NAME, "/Teeeez/BoL/master/version/"..SCRIPT_NAME..".version"):CheckUpdate()
 end
 
 local RequireI = Require("SourceLib")
-RequireI:Add("vPrediction", "https://raw.github.com/Hellsing/BoL/master/common/VPrediction.lua")
-RequireI:Add("SOW", "https://raw.github.com/Hellsing/BoL/master/common/SOW.lua")
+RequireI:Add("vPrediction", "https://raw.github.com/Teeeez/BOL/edit/master/VPrediction.lua")
+RequireI:Add("SOW", "https://raw.github.com/Teeeez/BOL/edit/master/SOW.lua")
 RequireI:Check()
 
 if RequireI.downloadNeeded == true then return end
