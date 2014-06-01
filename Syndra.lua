@@ -3,12 +3,14 @@ if myHero.charName ~= "Syndra" then return end
 local version = 1.07
 local AUTOUPDATE = true
 local SCRIPT_NAME = "Syndra"
+local ForceUseSimpleTS = false
+
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-local SOURCELIB_URL = "https://raw.github.com/Teeeez/BOL/blob/master/SourceLib.lua"
+local SOURCELIB_URL = "https://raw.github.com/TheRealSource/public/master/common/SourceLib.lua"
 local SOURCELIB_PATH = LIB_PATH.."SourceLib.lua"
 
 if FileExist(SOURCELIB_PATH) then
@@ -25,8 +27,9 @@ if AUTOUPDATE then
 end
 
 local RequireI = Require("SourceLib")
-RequireI:Add("vPrediction", "https://raw.github.com/Teeeez/BOL/blob/master/VPrediction.lua")
-RequireI:Add("SOW", "https://raw.github.com/Teeeez/BOL/blob/master/SOW.lua")
+RequireI:Add("vPrediction", "https://raw.github.com/Teeeez/BOL/master/VPrediction.lua")
+RequireI:Add("SOW", "https://raw.github.com/Teeeez/BOL/master/SOW.lua")
+RequireI:Add("Selector", "https://raw.githubusercontent.com/pqmailer/BoL_Scripts/master/Paid/Selector.lua")
 RequireI:Check()
 
 if RequireI.downloadNeeded == true then return end
@@ -94,6 +97,7 @@ function OnLoad()
 	W:SetAOE(true)
 
 	DLib:RegisterDamageSource(_Q, _MAGIC, 30, 40, _MAGIC, _AP, 0.60, function() return (player:CanUseSpell(_Q) == READY) end)--Without the 15% increase at rank 5
+    DLib:RegisterDamageSource(_LV5Q, _MAGIC, 264.5, 0, _MAGIC, _AP, 0.69, function() return (player:CanUseSpell(_Q) == READY) end)--With the 15% increase at rank 5
 	DLib:RegisterDamageSource(_W, _MAGIC, 40, 40, _MAGIC, _AP, 0.70, function() return (player:CanUseSpell(_W) == READY) end)
 	DLib:RegisterDamageSource(_E, _MAGIC, 25, 45, _MAGIC, _AP, 0.4, function() return (player:CanUseSpell(_E) == READY) end)--70 / 115 / 160 / 205 / 250 (+ 40% AP)
 	DLib:RegisterDamageSource(_R, _MAGIC, 45, 45, _MAGIC, _AP, 0.2, function() return (player:CanUseSpell(_R) == READY) end)--1 sphere
@@ -102,15 +106,26 @@ function OnLoad()
 
 	Menu:addSubMenu("Orbwalking", "Orbwalking")
 		SOWi:LoadToMenu(Menu.Orbwalking)
+    
+	
+	Menu:addSubMenu("Choose Target Selector", "SelectTS")
+		Menu.SelectTS:addParam("TS", "Select TS (Require reload)", SCRIPT_PARAM_LIST, 1, {"Use SimpleTS", "Use Selector"})
 
-	Menu:addSubMenu("Target selector", "STS")
+	if (Menu.SelectTS.TS == 1) or ForceUseSimpleTS then
+		STS = SimpleTS(STS_PRIORITY_LESS_CAST_MAGIC)		
+	    Menu:addSubMenu("Set Target Selector Priority", "STS")
 		STS:AddToMenu(Menu.STS)
+  
+	else
+        Selector.Instance()
+    end
 
+	
 	Menu:addSubMenu("Combo", "Combo")
 		Menu.Combo:addParam("UseQ", "Use Q", SCRIPT_PARAM_ONOFF, true)
 		Menu.Combo:addParam("UseW", "Use W", SCRIPT_PARAM_ONOFF, true)
 		Menu.Combo:addParam("UseE", "Use E", SCRIPT_PARAM_ONOFF, true)
-		Menu.Combo:addParam("UseEQ", "Use EQ", SCRIPT_PARAM_ONOFF, true)
+		Menu.Combo:addParam("UseEQ", "Use QE", SCRIPT_PARAM_ONOFF, true)
 		Menu.Combo:addParam("UseR", "Use R", SCRIPT_PARAM_ONOFF, true)
 		Menu.Combo:addParam("Enabled", "Use Combo!", SCRIPT_PARAM_ONKEYDOWN, false, 32)
 
@@ -118,7 +133,7 @@ function OnLoad()
 		Menu.Harass:addParam("UseQ", "Use Q", SCRIPT_PARAM_ONOFF, true)
 		Menu.Harass:addParam("UseW", "Use W", SCRIPT_PARAM_ONOFF, false)
 		Menu.Harass:addParam("UseE", "Use E", SCRIPT_PARAM_ONOFF, false)
-		Menu.Harass:addParam("UseEQ", "Use EQ", SCRIPT_PARAM_ONOFF, false)
+		Menu.Harass:addParam("UseEQ", "Use QE", SCRIPT_PARAM_ONOFF, false)
 		Menu.Harass:addParam("ManaCheck", "Don't harass if mana < %", SCRIPT_PARAM_SLICE, 0, 0, 100)
 		Menu.Harass:addParam("Enabled", "Harass!", SCRIPT_PARAM_ONKEYDOWN, false, string.byte("C"))
 		Menu.Harass:addParam("Enabled2", "Harass (toggle)!", SCRIPT_PARAM_ONKEYTOGGLE, false, string.byte("L"))
@@ -137,9 +152,8 @@ function OnLoad()
 		Menu.JungleFarm:addParam("UseW",  "Use W", SCRIPT_PARAM_ONOFF, true)
 		Menu.JungleFarm:addParam("UseE",  "Use E", SCRIPT_PARAM_ONOFF, false)
 		Menu.JungleFarm:addParam("Enabled", "Farm!", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("V"))
-
-	Menu:addSubMenu("EQ combo settings", "EQ")
-		Menu.EQ:addParam("Order",  "Combo mode", SCRIPT_PARAM_LIST, 1, {"E -> Q" , "Q - > E"})
+	
+	Menu:addSubMenu("QE combo settings", "QE")
 		Menu.EQ:addParam("Range", "Place Q at range:", SCRIPT_PARAM_SLICE, Q.range, 0, Q.range)
 
 	Menu:addSubMenu("Ultimate", "R")
@@ -159,7 +173,7 @@ function OnLoad()
 		Menu.Misc:addSubMenu("Anti-Gapclosers", "AG")
 			AntiGapcloser(Menu.Misc.AG, OnGapclose)
 
-		Menu.Misc:addParam("MEQ", "Manual E+Q Combo", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("T"))
+		Menu.Misc:addParam("MEQ", "Manual Q+E Combo", SCRIPT_PARAM_ONKEYDOWN, false,   string.byte("T"))
 
 	Menu:addSubMenu("Drawings", "Drawings")
 		DManager:CreateCircle(myHero, SOWi:MyRange() + 50, 1, {255, 255, 255, 255}):AddToMenu(Menu.Drawings, "AA Range", true, true, true)
@@ -188,6 +202,11 @@ function GetCombo()
 	for i, spell in ipairs(MainCombo) do
 		table.insert(result, spell)
 	end
+	if Q:GetLevel() == 5 then
+		table.insert(result, _LV5Q)
+	else
+		table.insert(result, _Q)
+	end
 	for i = 1, #GetValidBalls() do
 		table.insert(result, _R)
 	end
@@ -195,16 +214,28 @@ function GetCombo()
 end
 
 --Track the balls :p
-function GetValidBalls(all)
-	local result = {}
-	for i, ball in ipairs(Balls) do
-		if (ball.added or ball.startT <= os.clock()) and Balls[i].endT >= os.clock() and ball.object.valid then
-			if not WObject or ball.object.networkID ~= WObject.networkID then
-				table.insert(result, ball)
+function GetValidBalls(ForE)
+	if (ForE == nil) or (ForE == false) then
+		local result = {}
+		for i, ball in ipairs(Balls) do
+			if (ball.added or ball.startT <= os.clock()) and Balls[i].endT >= os.clock() and ball.object.valid then
+				if not WObject or ball.object.networkID ~= WObject.networkID then
+					table.insert(result, ball)
+				end
 			end
 		end
+		return result
+	else
+		local result = {}
+		for i, ball in ipairs(Balls) do
+			if (ball.added or ball.startT <= os.clock() + (E.delay + GetDistance(myHero.visionPos, ball.object) / E.speed)) and Balls[i].endT >= os.clock() + (E.delay + GetDistance(myHero.visionPos, ball.object) / E.speed) and ball.object.valid then
+				if not WObject or ball.object.networkID ~= WObject.networkID then
+					table.insert(result, ball)
+				end
+			end
+		end
+		return result
 	end
-	return result
 end
 
 function AddBall(obj)
@@ -346,7 +377,7 @@ end
 
 function OnInterruptSpell(unit, spell)
 	if GetDistanceSqr(unit.visionPos, myHero.visionPos) < E.rangeSqr and E:IsReady() then
-
+		
 		if Q:IsReady() then
 			StartEQCombo(unit, false)
 		else
@@ -390,20 +421,54 @@ function OnCastQ(spell)
 	local BallInfo = {
 						added = false, 
 						object = {valid = true, x = spell.endPos.x, y = myHero.y, z = spell.endPos.z},
-						startT = os.clock() + math.max(0, 0.25 - GetDistance(myHero.visionPos, spell.endPos)/1500) - GetLatency()/2000,
-						endT = os.clock() + BallDuration + 1 - GetLatency()/2000
+						startT = os.clock() + Q.delay - GetLatency()/2000,
+						endT = os.clock() + BallDuration + Q.delay - GetLatency()/2000
 					 }
-
-	table.insert(Balls, BallInfo)
-
 	if os.clock() - QECombo < 1.5 then
-		CastSpell(_E, spell.endPos.x, spell.endPos.z)
-		QECombo = 0
+		local Delay = Q.delay - (E.delay + GetDistance(myHero.visionPos, BallInfo.object) / E.speed)
+		DelayAction(function(t) CastQE2(t) end, Delay, {BallInfo})
+	else
+		Qdistance = nil
+		EQTarget = nil
+		EQCombo = 0
 	end
-	Qdistance = nil
-	EQTarget = nil
-	EQCombo = 0
+	table.insert(Balls, BallInfo)
 end
+
+function CastQE2(BallInfo)
+	for i, enemy in ipairs(GetEnemyHeroes()) do
+		if ValidTarget(enemy) then
+			local tmp1, tmp2, enemyPos = VP:GetPredictedPos(enemy, 0.25, QESpeed, myHero.visionPos, false)
+			if enemyPos and enemyPos.z then
+				if GetDistanceSqr(BallInfo.object, myHero.visionPos) < Q.rangeSqr then
+					local Delay = Q.delay - (E.delay + GetDistance(myHero.visionPos, BallInfo.object) / E.speed)
+					local QESpeed = Speeds[_QE]
+					local EP = Vector(BallInfo.object) +  (100+(-0.6 * GetDistance(BallInfo.object, myHero.visionPos) + 966)) * (Vector(BallInfo.object) - Vector(myHero.visionPos)):normalized()
+					local SP = Vector(BallInfo.object) - 100 * (Vector(BallInfo.object) - Vector(myHero.visionPos)):normalized()
+					local pointSegment, pointLine, isOnSegment = VectorPointProjectionOnLineSegment(SP, EP, enemyPos)
+					if isOnSegment and GetDistanceSqr(pointLine, enemyPos) <= (Widths[_QE] + VP:GetHitBox(enemy))^2 then
+						if (E.delay + GetDistance(myHero.visionPos, BallInfo.object) / E.speed) >= (BallInfo.startT - os.clock()) then
+							CastSpell(_E, BallInfo.object.x, BallInfo.object.z)
+						else
+							DelayAction(function(t) CastQE3(t) end, BallInfo.startT - os.clock() - (E.delay + GetDistance(myHero.visionPos, BallInfo.object) / E.speed), {BallInfo})	
+						end				
+					end
+				end
+			end
+		end
+	end
+end
+
+
+function CastQE3(BallInfo)
+	if (E.delay + GetDistance(myHero.visionPos, BallInfo.object) / E.speed) >= (BallInfo.startT - os.clock()) then
+		CastSpell(_E, BallInfo.object.x, BallInfo.object.z)
+	else
+		DelayAction(function(t) CastQE3(t) end, BallInfo.startT - os.clock() - (E.delay + GetDistance(myHero.visionPos, BallInfo.object) / E.speed), {BallInfo})	
+	end				
+end
+
+
 
 function OnCastW(spell)
 	if os.clock() - WECombo < 1.5 then
@@ -421,14 +486,8 @@ function OnCastE(spell)
 end
 
 function StartEQCombo(unit, Qfirst)
-	if (Menu.EQ.Order == 1 or Qfirst == false) and Qfirst ~= true then
-		EQCombo = os.clock()
-		EQTarget = unit
-		E:Cast(unit.visionPos.x, unit.visionPos.z)
-	else 
-		QECombo = os.clock()
-		Cast2Q(unit)
-	end
+	QECombo = os.clock()
+	Cast2Q(unit)
 end
 
 function Cast2Q(target)
@@ -452,16 +511,28 @@ function Cast2Q(target)
 end
 
 function UseSpells(UseQ, UseW, UseE, UseEQ, UseR)
-	local Qtarget = STS:GetTarget(W.range)
-	local QEtarget = STS:GetTarget(QERange)
-	local Rtarget = STS:GetTarget(R.range)
+
+	local Qtarget
+	local QEtarget
+	local Rtarget
+
+	if STS == nil then
+		Qtarget = Selector.GetTarget(SelectorMenu.Get().mode, 'AP', {distance = W.range})
+		QEtarget = Selector.GetTarget(SelectorMenu.Get().mode, 'AP', {distance = QERange})
+		Rtarget = Selector.GetTarget(SelectorMenu.Get().mode, 'AP', {distance = R.range})
+	else
+		Qtarget = STS:GetTarget(W.range)
+		QEtarget = STS:GetTarget(QERange)
+		Rtarget = STS:GetTarget(R.range)
+	end 
+
 	local DFGUsed = false
 
 	if (os.clock() - DontUseRTime < 10) then
 		UseR = false
 	end
 
-	if UseW then
+	if UseW and W:IsReady() then
 		if Qtarget and W.status == 1 and (os.clock() - Q:GetLastCastTime() > 0.25) and (os.clock() - E:GetLastCastTime() > 0.25) then
 			if WObject.charName == nil or WObject.charName:lower() ~= "heimertblue" then --Don't throw the giant tower :D
 				W:Cast(Qtarget)
@@ -473,19 +544,19 @@ function UseSpells(UseQ, UseW, UseE, UseEQ, UseR)
 			end
 		end
 
-		if not Qtarget and QEtarget and E:IsReady() and W.status == 1 and (WObject and WObject.name and WObject.name:find("Seed")) then
+		--if not Qtarget and QEtarget and E:IsReady() and W.status == 1 and (WObject and WObject.name and WObject.name:find("Seed")) then
 			--Update the EQ speed and the range
-			EQ.delay = Q.range / E.speed + E.delay 
-			local QEtargetPos, Hitchance, Position = EQ:GetPrediction(QEtarget)
-			local pos = Vector(myHero.visionPos) + Q.range * (Vector(QEtargetPos) - Vector(myHero.visionPos)):normalized()
-			if GetDistance(QEtargetPos, pos) <= (-0.6 * Q.range + 966) then
-				WECombo = os.clock()
-				W:Cast(pos.x, pos.z)
-			end
-		end
+			--EQ.delay = Q.range / E.speed + E.delay 
+			--local QEtargetPos, Hitchance, Position = EQ:GetPrediction(QEtarget)
+			--local pos = Vector(myHero.visionPos) + Q.range * (Vector(QEtargetPos) - Vector(myHero.visionPos)):normalized()
+			--if GetDistance(QEtargetPos, pos) <= (-0.6 * Q.range + 966) then
+			--	WECombo = os.clock()
+			--	W:Cast(pos.x, pos.z)
+			--end
+		--end
 	end
 
-	if UseQ then
+	if UseQ and Q:IsReady() then
 		if Qtarget and os.clock() - W:GetLastCastTime() > 0.25 and os.clock() - E:GetLastCastTime() > 0.25 then
 			VP.ShotAtMaxRange = true
 			Q:Cast(Qtarget)
@@ -505,9 +576,9 @@ function UseSpells(UseQ, UseW, UseE, UseEQ, UseR)
 		end
 	end
 
-	if UseE then
+	if UseE and E:IsReady() then
 		--Check to stun people with E
-		local validballs = GetValidBalls()
+		local validballs = GetValidBalls(true)
 		for i, enemy in ipairs(GetEnemyHeroes()) do
 			if ValidTarget(enemy) then
 				local tmp1, tmp2, enemyPos = VP:GetPredictedPos(enemy, 0.25, QESpeed, myHero.visionPos, false)
@@ -532,7 +603,7 @@ function UseSpells(UseQ, UseW, UseE, UseEQ, UseR)
 	if Rtarget and UseR then
 		if DLib:IsKillable(Qtarget, GetCombo()) or (os.clock() - UseRTime < 10) then
 			ItemManager:CastOffensiveItems(Rtarget)
-
+			
 			DFG = ItemManager:GetItem("DFG"):GetSlot()
 			if DFG and myHero:CanUseSpell(DFG) == READY then
 				DFGUsed = true
@@ -569,10 +640,10 @@ function Farm()
 	local UseQ = Menu.Farm.LaneClear and (Menu.Farm.UseQ >= 3) or (Menu.Farm.UseQ == 2 or Menu.Farm.UseQ == 4)
 	local UseW = Menu.Farm.LaneClear and (Menu.Farm.UseW >= 3) or (Menu.Farm.UseW == 2 or Menu.Farm.UseW == 4)
 	local UseE = Menu.Farm.LaneClear and (Menu.Farm.UseE >= 3) or (Menu.Farm.UseE == 2 or Menu.Farm.UseE == 4)
-
+	
 	local CasterMinions = SelectUnits(EnemyMinions.objects, function(t) return (t.charName:lower():find("wizard") or t.charName:lower():find("caster")) and ValidTarget(t) and GetDistanceSqr(t) < W.rangeSqr end)
 	local MeleeMinions = SelectUnits(EnemyMinions.objects, function(t) return (t.charName:lower():find("basic") or t.charName:lower():find("cannon")) and ValidTarget(t) and GetDistanceSqr(t) < W.rangeSqr end)
-
+	
 	if UseW then
 		if W.status == 0 then
 			if #MeleeMinions > 1 then
@@ -653,7 +724,7 @@ function JungleFarm()
 	local CloseMinion = CloseMinions[1]
 	local FarMinion = AllMinions[1]
 
-
+	
 
 	if ValidTarget(CloseMinion) then
 		local selectedTarget = GetTarget()
@@ -712,7 +783,7 @@ function UpdateSpellData()
 	if E.width ~= 2 * Widths[_E] and E:GetLevel() == 5 then
 		E.width = 2 * Widths[_E]
 	end
-
+	
 	if R.range ~= (Ranges[_R] + 75) and R:GetLevel() == 5 then
 		R:SetRange(Ranges[_R] + 75)
 	end
@@ -734,13 +805,14 @@ function Harass()
 end
 
 function OnTick()
+	DLib.combo = GetCombo()
 	DrawJungleStealingIndicator = false
 	BTOnTick()
 	SOWi:EnableAttacks()
 	DLib.combo = GetCombo()
 	UpdateSpellData()--update the spells data
 	DrawEQIndicators = false
-
+	
 	if Menu.Combo.Enabled then
 		Combo()
 	elseif Menu.Harass.Enabled or Menu.Harass.Enabled2 then
@@ -753,13 +825,6 @@ function OnTick()
 
 	if Menu.JungleFarm.Enabled then
 		JungleFarm()
-	end
-
-	if Menu.R.UseR then
-		local Rtarget = STS:GetTarget(R.range)
-		if Rtarget then
-			R:Cast(Rtarget)
-		end
 	end
 
 	if Menu.Misc.WPet then
