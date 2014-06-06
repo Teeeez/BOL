@@ -1,13 +1,13 @@
-local version = "1.129"
-local AUTOUPDATE = false
+local version = "1.130"
+local AUTOUPDATE = true
 local UPDATE_HOST = "raw.github.com"
-local UPDATE_PATH = "/Teeeez/BoL/blob/master/SOW.lua".."?rand="..math.random(1,10000)
+local UPDATE_PATH = "/Teeeez/BoL/master/SOW.lua".."?rand="..math.random(1,10000)
 local UPDATE_FILE_PATH = LIB_PATH.."SOW.lua"
 local UPDATE_URL = "https://"..UPDATE_HOST..UPDATE_PATH
 
 function _AutoupdaterMsg(msg) print("<font color=\"#6699ff\"><b>SOW:</b></font> <font color=\"#FFFFFF\">"..msg..".</font>") end
 if AUTOUPDATE then
-	local ServerData = GetWebResult(UPDATE_HOST, "/Teeeez/BoL/blob/master/SOW.version")
+	local ServerData = GetWebResult(UPDATE_HOST, "/Teeeez/BoL/master/version/SOW.version")
 	if ServerData then
 		ServerVersion = type(tonumber(ServerData)) == "number" and tonumber(ServerData) or nil
 		if ServerVersion then
@@ -270,12 +270,15 @@ function SOW:OrbWalk(target, point)
 		self:Attack(target)
 	elseif self:CanMove() and self.Move then
 		if not point then
-			local OBTarget = GetTarget()
+			local OBTarget = GetTarget() or target
 			if self.Menu.Mode == 1 or not OBTarget then
 				local Mv = Vector(myHero) + 400 * (Vector(mousePos) - Vector(myHero)):normalized()
 				self:MoveTo(Mv.x, Mv.z)
-			elseif GetDistanceSqr(OBTarget) > 50*50 then
+			elseif GetDistanceSqr(OBTarget) > 100*100 + math.pow(self.VP:GetHitBox(OBTarget), 2) then
 				local point = self.VP:GetPredictedPos(OBTarget, 0, 2*myHero.ms, myHero, false)
+				if GetDistanceSqr(point) < 100*100 + math.pow(self.VP:GetHitBox(OBTarget), 2) then
+					point = Vector(Vector(myHero) - point):normalized() * 50
+				end
 				self:MoveTo(point.x, point.z)
 			end
 		else
